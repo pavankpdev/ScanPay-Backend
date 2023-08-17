@@ -1,6 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
-import {HDNodeWallet} from 'ethers';
+import {HDNodeWallet, getDefaultProvider} from 'ethers';
 import {encrypt, decrypt} from "./utils/crypto";
 import bcrypt from "bcryptjs";
 import {getRow, insertRow, supabase} from "./providers/supabase";
@@ -19,6 +19,7 @@ app.post('/seed/generate', async (req: Request, res: Response) => {
 
     const BIP39 = require('bip39')
     const mnemonic = BIP39.generateMnemonic();
+    console.log(mnemonic)
     const {error} = await insertRow(
         'Users',
         {
@@ -52,15 +53,32 @@ app.post('/account/new', async (req: Request, res: Response) => {
     const mnemonic = decrypt(encryptedSeed, password);
     console.log(mnemonic)
     const seed = await BIP39.mnemonicToSeed(mnemonic);
-    const wallet = HDNodeWallet.fromSeed(seed as any);
+    const HDWallet = HDNodeWallet.fromPhrase(mnemonic);
 
     // Save wallet count to database
-    let { data, error } = await supabase
+    let { error } = await supabase
         .rpc('increment', {
             useremail: email
         })
 
-    console.log(error)
+    if (error) {
+        return res.status(400).json({
+            error: "Error creating account",
+            message: error?.message
+        })
+    }
+
+    const {data: user, error: getUserError} = await getRow('Users', 'email', email);
+    if(!user || getUserError) {
+        return res.status(400).json({
+            error: "User not found"
+        })
+    }
+
+    const accounts = user.accounts;
+
+    const wallet = HDWallet.derivePath(`m/44'/60'/0'/0/${accounts}`)
+    console.log(wallet)
     return res.json({
         address: wallet.address,
         privateKey: wallet.privateKey,
@@ -91,10 +109,22 @@ app.post('/seed/recover', async (req: Request, res: Response) => {
     const accounts = user.accounts;
 
     const seed = await BIP39.mnemonicToSeed(mnemonic);
-    const wallet = HDNodeWallet.fromSeed(seed as any);
+    const HDWallet = HDNodeWallet.fromPhrase(mnemonic);
+
+    const recoveredWallets: Array<{address: string, privateKey: string}> = [];
+    const provider = getDefaultProvider('https://polygon-mumbai.g.alchemy.com/v2/e5X5TCL-0GBdm_iP9LnsNskTgeAHPHrS');
+
+    for (let i = 0; i < accounts; i++) {
+        const wallet = HDWallet.derivePath(`m/44'/60'/0'/0/${i + 1}`)
+        console.log(wallet)
+        recoveredWallets.push({
+            address: wallet.address,
+            privateKey: wallet.privateKey,
+        })
+    }
+
     return res.json({
-        address: wallet.address,
-        privateKey: wallet.privateKey,
+        wallets: recoveredWallets
     })
 })
 
