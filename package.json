@@ -1,0 +1,23 @@
+{
+  "name": "scanpay-backend",
+  "version": "1.0.0",
+  "repository": "https://github.com/pavankpdev/ScanPay-Backend.git",
+  "author": "pavanleton <pavankumarkpkp@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  },
+  "scripts": {
+    "build": "npx tsc",
+    "start": "node dist/index.js",
+    "dev": "concurrently \"npx tsc --watch\" \"npx nodemon -q dist/index.js\""
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.5.0",
+    "concurrently": "^8.2.0",
+    "nodemon": "^3.0.1",
+    "typescript": "^5.1.6"
+  }
+}
