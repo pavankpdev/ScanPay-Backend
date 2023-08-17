@@ -18,6 +18,7 @@
     "dev": "concurrently \"npx tsc --watch\" \"npx nodemon -q dist/index.js\""
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
     "@types/express": "^4.17.17",
     "@types/node": "^20.5.0",
     "concurrently": "^8.2.0",
