@@ -19,7 +19,6 @@ app.post('/seed/generate', async (req: Request, res: Response) => {
 
     const BIP39 = require('bip39')
     const mnemonic = BIP39.generateMnemonic();
-    console.log(mnemonic)
     const {error} = await insertRow(
         'Users',
         {
@@ -51,8 +50,6 @@ app.post('/account/new', async (req: Request, res: Response) => {
     const BIP39 = require('bip39')
 
     const mnemonic = decrypt(encryptedSeed, password);
-    console.log(mnemonic)
-    const seed = await BIP39.mnemonicToSeed(mnemonic);
     const HDWallet = HDNodeWallet.fromPhrase(mnemonic);
 
     // Save wallet count to database
@@ -78,7 +75,6 @@ app.post('/account/new', async (req: Request, res: Response) => {
     const accounts = user.accounts;
 
     const wallet = HDWallet.derivePath(`m/44'/60'/0'/0/${accounts}`)
-    console.log(wallet)
     return res.json({
         address: wallet.address,
         privateKey: wallet.privateKey,
@@ -126,6 +122,25 @@ app.post('/seed/recover', async (req: Request, res: Response) => {
     return res.json({
         wallets: recoveredWallets
     })
+})
+
+app.post('/seed/verify', async (req: Request, res: Response) => {
+    const enteredMnemonic: string = req.body.mnemonic;
+    const encryptedSeed: string = req.body.seed;
+    const password: string = req.body.password;
+
+    const mnemonic = decrypt(encryptedSeed, password);
+
+    if(enteredMnemonic === mnemonic) {
+        return res.json({
+            verified: true
+        })
+    }
+
+    return res.status(401).json({
+        verified: false
+    })
+
 })
 
 app.listen(port, () => {
