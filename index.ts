@@ -38,6 +38,7 @@ app.post('/seed/generate', async (req: Request, res: Response) => {
 
     return res.json({
         seed: encrypt(mnemonic, password as string),
+        mnemonic
     });
 });
 
@@ -46,8 +47,6 @@ app.post('/account/new', async (req: Request, res: Response) => {
     const password: string = req.body.password;
     const name: string = req.body.name;
     const email: string = req.body.email;
-
-    const BIP39 = require('bip39')
 
     const mnemonic = decrypt(encryptedSeed, password);
     const HDWallet = HDNodeWallet.fromPhrase(mnemonic);
@@ -85,6 +84,7 @@ app.post('/account/new', async (req: Request, res: Response) => {
 app.post('/seed/recover', async (req: Request, res: Response) => {
     const mnemonic: string = req.body.mnemonic;
     const email: string = req.body.email;
+    const password: string = req.body.password;
 
     const BIP39 = require('bip39')
 
@@ -95,7 +95,6 @@ app.post('/seed/recover', async (req: Request, res: Response) => {
     }
 
     const {data: user, error} = await getRow('Users', 'email', email);
-    console.log(user)
     if(!user || error) {
         return res.status(400).json({
             error: "User not found"
@@ -104,23 +103,22 @@ app.post('/seed/recover', async (req: Request, res: Response) => {
 
     const accounts = user.accounts;
 
-    const seed = await BIP39.mnemonicToSeed(mnemonic);
     const HDWallet = HDNodeWallet.fromPhrase(mnemonic);
 
-    const recoveredWallets: Array<{address: string, privateKey: string}> = [];
-    const provider = getDefaultProvider('https://polygon-mumbai.g.alchemy.com/v2/e5X5TCL-0GBdm_iP9LnsNskTgeAHPHrS');
+    const recoveredWallets: Array<{address: string, privateKey: string, name: string}> = [];
 
     for (let i = 0; i < accounts; i++) {
         const wallet = HDWallet.derivePath(`m/44'/60'/0'/0/${i + 1}`)
-        console.log(wallet)
         recoveredWallets.push({
             address: wallet.address,
             privateKey: wallet.privateKey,
+            name: `Account ${i + 1}`
         })
     }
 
     return res.json({
-        wallets: recoveredWallets
+        wallets: recoveredWallets,
+        seed: encrypt(mnemonic, password as string),
     })
 })
 
@@ -130,8 +128,9 @@ app.post('/seed/verify', async (req: Request, res: Response) => {
     const password: string = req.body.password;
 
     const mnemonic = decrypt(encryptedSeed, password);
+    console.log(enteredMnemonic.toLowerCase() === mnemonic.toLowerCase())
 
-    if(enteredMnemonic === mnemonic) {
+    if(enteredMnemonic.toLowerCase() === mnemonic.toLowerCase()) {
         return res.json({
             verified: true
         })
