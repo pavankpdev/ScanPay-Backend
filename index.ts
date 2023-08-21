@@ -58,6 +58,7 @@ app.post('/account/new', async (req: Request, res: Response) => {
         })
 
     if (error) {
+        console.log(error)
         return res.status(400).json({
             error: "Error creating account",
             message: error?.message
@@ -66,6 +67,8 @@ app.post('/account/new', async (req: Request, res: Response) => {
 
     const {data: user, error: getUserError} = await getRow('Users', 'email', email);
     if(!user || getUserError) {
+        console.log(getUserError)
+
         return res.status(400).json({
             error: "User not found"
         })
@@ -130,15 +133,16 @@ app.post('/seed/verify', async (req: Request, res: Response) => {
     const mnemonic = decrypt(encryptedSeed, password);
     console.log(enteredMnemonic.toLowerCase() === mnemonic.toLowerCase())
 
-    if(enteredMnemonic.toLowerCase() === mnemonic.toLowerCase()) {
-        return res.json({
-            verified: true
+    if(enteredMnemonic.toLowerCase() !== mnemonic.toLowerCase()) {
+        return res.status(401).json({
+            verified: false
         })
     }
 
-    return res.status(401).json({
-        verified: false
+    return res.json({
+        verified: true
     })
+
 
 })
 
